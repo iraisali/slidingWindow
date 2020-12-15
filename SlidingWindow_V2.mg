@@ -16,9 +16,10 @@ G:=E![Gx,Gy];
 
 function JacobianToAffine(J)
 	if J eq [1,1,0] then return E!0;
-	else 
-		a:= J[1] /(J[3]^2);
-		b:= J[2] /(J[3]^3);
+	else
+		Z2:=J[3]^2;
+		a:= J[1] /Z2;
+		b:= J[2] /(J[3]*Z2);
 		return E![a,b];
 	end if;
 end function;
@@ -30,12 +31,16 @@ end function;
       //En sortie : //
                 //2*P avec les formule jacobiennes
 
-doubleJacobian:= function(P) 
-	A:= 4*P[1]*P[2]^2;
-	B:= 3*P[1]^2+a*P[3]^4;
-	//Q:=[-2*A+B^2,-8*P[2]^4+B*(A-(-2*A+B^2)),2*P[2]*P[3]];
+doubleJacobian:= function(P)
+	X:=P[1];
+	Y:=P[2];
+	Y2:=Y^2;
+	Z:=P[3];
+	A:= 4*X*Y2;
+	Z2:= Z^2;
+	B:= 3*(X-Z2)*(X+Z2);
 	X:= -2*A+B^2;
-	Q:=[X,-8*P[2]^4+B*(A-X),2*P[2]*P[3]];
+	Q:=[X,-8*Y2^2+B*(A-X),2*Y*Z];
 	return(Q);
 end function;
 
@@ -53,10 +58,12 @@ addJacobian:=function(P,Q)
 	else
 		if Q eq [1,1,0] then return(P);
 		else
-			A:= P[1]*Q[3]^2;
-			B:= Q[1]*P[3]^2;
-			C:= P[2]*Q[3]^3;
-			D:= Q[2]*P[3]^3;
+			Qz2:=Q[3]^2;
+			Pz2:=P[3]^2;
+			A:= P[1]*Qz2;
+			B:= Q[1]*Pz2;
+			C:= P[2]*Q[3]*Qz2;
+			D:= Q[2]*P[3]*Pz2;
 			E:= B-A;
 			F:= D-C;
 			X:= -E^3-2*A*E^2+F^2;
@@ -76,7 +83,6 @@ end function;
 doubleMultiplyAdd:= function(P,n)
 	y:=[P[1],P[2],P[3]];
 	if n eq 0 then 
-		//return([1,1,0]); //neutre
 		return y;
 	else
 		for i:=1 to n do
@@ -99,7 +105,6 @@ end function;
 
 function PrecomputesSW(P,k)
     return [doubleMultiplyAdd(P,i) :  i in [0..2^(k-1) -1 ]];
-    //return [doubleMultiplyAdd(P,i) :  i in [1..2^(k-1) -1 ]];
 end function;
  
 
@@ -115,7 +120,6 @@ function SlidingWindow(P,n,k)
 			y := doubleJacobian(y); 
 			i := i-1;
 		else
-			//s := Max(i-k+1,0);
 			s := Max(i - k +1,1);
 			while L[s] eq 0 do
 				s := s+1;
@@ -125,7 +129,7 @@ function SlidingWindow(P,n,k)
 			end for;
 			u := SequenceToInteger([L[j] : j in [s..i] ] ,2);
 			//y := addJacobian(y, prc[(u-1) div 2 + 1]);
-			y := addJacobian(y, prc[(u+1) div 2]); //Je ne suis pas sur que ca me donne le bon
+			y := addJacobian(y, prc[(u+1) div 2]); 
 			i := s-1;
 		end if;
 	end while;
