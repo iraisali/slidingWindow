@@ -17,26 +17,29 @@ G:=E![Gx,Gy];
 function JacobianToAffine(J)
 	if J eq [1,1,0] then return E!0;
 	else
-		Z2:=J[3]^2;
-		a:= J[1] /Z2;
-		b:= J[2] /(J[3]*Z2);
+		//Z2:=J[3]^2;
+		Z3:=1/(J[3]^3);
+		//a:= J[1] /Z2;
+		//b:= J[2] /(J[3]*Z2);
+		a:=J[1]*Z3*J[3];
+		b:=J[2]*Z3;
 		return E![a,b];
 	end if;
 end function;
 
 // ----- Doublement Jacobien
-      //En entree : //
-                //P est un point en coordonees jacobiennes
-                //a coefficient a de la courbe
-      //En sortie : //
-                //2*P avec les formule jacobiennes
+    //En entree : //
+            //P est un point en coordonees jacobiennes
+            //a coefficient a de la courbe
+    //En sortie : //
+            //2*P avec les formule jacobiennes
 
 doubleJacobian:= function(P)
 	X:=P[1];
 	Y:=P[2];
 	Z:=P[3];
 	YY := Y*Y;
-	XYY:=X*YY;
+	XYY:= X*YY;
 	//A:=4*X*YY;
 	A:=XYY+XYY+XYY+XYY;
 	XXZ4:=X*X-Z^4;
@@ -86,12 +89,19 @@ end function;
     //En sortie : 
               //(2n+1)*P
 doubleMultiplyAdd:= function(P,n)
+	L:=IntegerToSequence(n,2);
 	y:=P;
 	if n eq 0 then 
 		return y;
 	else
-		for i:=1 to n do
-			y := addJacobian(y,doubleJacobian(P));
+		precompute:=[doubleJacobian(P)];
+		for i:= 1 to (#L-1) do 
+			precompute:=Append(precompute,doubleJacobian(precompute[i]));
+		end for;
+		for i:=1 to #L do
+			if L[i] eq 1 then
+				y:=addJacobian(y,precompute[i]);
+			end if;
 		end for;
 		return(y);
 	end if;
@@ -117,10 +127,10 @@ end function;
 
 function SlidingWindow(P,n,k)
 	P:=[P[1],P[2],P[3]];
-	prc:=PrecomputesSW(P,k);
 	L:=IntegerToSequence(n,2); //liste des coefs de n dans sa décompo en base 2
 	y := [1,1,0]; //neutre
 	i := #L;
+	prc:=PrecomputesSW(P,k);
 	while i ge 1 do
 		if L[i] eq 0 then 
 			y := doubleJacobian(y); 
