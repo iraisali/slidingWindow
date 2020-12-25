@@ -81,33 +81,6 @@ addJacobian:=function(P,Q)
 end function;
 
 
-// ------ Double & multiply & addjacobien
-    //En entree : //
-              //n nombre de doublement
-              //a coefficient de la courbe
-              //P point
-    //En sortie : 
-              //(2n+1)*P
-doubleMultiplyAdd:= function(P,n)
-	L:=IntegerToSequence(n,2);
-	y:=P;
-	if n eq 0 then 
-		return y;
-	else
-		precompute:=[doubleJacobian(P)];
-		for i:= 1 to (#L-1) do 
-			precompute:=Append(precompute,doubleJacobian(precompute[i]));
-		end for;
-		for i:=1 to #L do
-			if L[i] eq 1 then
-				y:=addJacobian(y,precompute[i]);
-			end if;
-		end for;
-		return(y);
-	end if;
-end function;
-
-
 // --------------------------------------- PRECALCULS -------------------------------------
 //Precomputes
     //En entree :
@@ -118,10 +91,14 @@ end function;
 	//En sortie : //
 			//liste de (2i+1)*P pour i variant de 0 a 2^(k-1)-1
 
-function PrecomputesSW(P,k)
-    return [doubleMultiplyAdd(P,i) :  i in [0..2^(k-1) -1 ]];
+precomputesSW := function(P,k)
+	prc:=[P];
+	S:=doubleJacobian(P);
+	for i:=1 to 2^(k-1) -1 do
+		prc:=Append(prc,addJacobian(prc[i],S));
+	end for;
+	return prc;
 end function;
- 
 
 // ------------------------------------- SLIDING WINDOW -----------------------------------
 
@@ -130,7 +107,7 @@ function SlidingWindow(P,n,k)
 	L:=IntegerToSequence(n,2); //liste des coefs de n dans sa décompo en base 2
 	y := [1,1,0]; //neutre
 	i := #L;
-	prc:=PrecomputesSW(P,k);
+	prc:=precomputesSW(P,k);
 	while i ge 1 do
 		if L[i] eq 0 then 
 			y := doubleJacobian(y); 
