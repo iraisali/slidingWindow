@@ -11,7 +11,7 @@ E :=EllipticCurve([a,b]);
 G:=E![Gx,Gy];
 
 // ---------------------------------------- FONCTIONS ------------------------------------------
-
+nu := [1,1,0];
 // ------ Conversion jacobien vers affine
 
 function JacobianToAffine(J)
@@ -40,7 +40,6 @@ doubleJacobian:= function(P)
 	Z:=P[3];
 	YY := Y*Y;
 	XYY:= X*YY;
-	//A:=4*X*YY;
 	A:=XYY+XYY+XYY+XYY;
 	XXZ4:=X*X-Z^4;
 	B:=XXZ4+XXZ4+XXZ4;
@@ -59,24 +58,21 @@ end function;
       //Sortie : 
                 //P+Q coord jac
 addJacobian:=function(P,Q)
-	if P eq [1,1,0] then return(Q);
+	if P eq nu then return(Q);
+	elif Q eq nu then return(P);
 	else
-		if Q eq [1,1,0] then return(P);
-		else
-			Qz2:=Q[3]*Q[3];
-			Pz2:=P[3]*P[3];
-			A:= P[1]*Qz2;
-			C:= -P[2]*Q[3]*Qz2;
-			E:= Q[1]*Pz2-A;
-			//F:= Q[2]*P[3]*Pz2-C;
-			F:= Q[2]*P[3]*Pz2+C;
-			e2:=E*E;
-			e3:=e2*E;
-			Ae2:=A*e2;
-			X:=-e3-Ae2-Ae2+F*F;
-			//return ([X,-C*e3+F*(A*e2-X),P[3]*Q[3]*E]);
-			return ([X,C*e3+F*(Ae2-X),P[3]*Q[3]*E]);
-		end if;
+		Qz2:=Q[3]*Q[3];
+		Pz2:=P[3]*P[3];
+		A:= P[1]*Qz2;
+		C:= -P[2]*Q[3]*Qz2;
+		E:= Q[1]*Pz2-A;
+		F:= Q[2]*P[3]*Pz2+C;
+		e2:=E*E;
+		e3:=e2*E;
+		Ae2:=A*e2;
+		X:=-e3-Ae2-Ae2+F*F;
+		//return ([X,-C*e3+F*(A*e2-X),P[3]*Q[3]*E]);
+		return ([X,C*e3+F*(Ae2-X),P[3]*Q[3]*E]);
 	end if;
 end function;
 
@@ -104,8 +100,8 @@ end function;
 
 function SlidingWindow(P,n,k)
 	P:=[P[1],P[2],P[3]];
-	L:=IntegerToSequence(n,2); //liste des coefs de n dans sa décompo en base 2
-	y := [1,1,0]; //neutre
+	L:=IntegerToSequence(n,2); 
+	y := nu;
 	i := #L;
 	prc:=precomputesSW(P,k);
 	while i ge 1 do
@@ -120,15 +116,13 @@ function SlidingWindow(P,n,k)
 			for h:=1 to i-s + 1 do
 				y := doubleJacobian(y);
 			end for;
-			u := SequenceToInteger([L[j] : j in [s..i] ] ,2);
+			u := ShiftRight(ModByPowerOf2(n,i),s-1);
 			y := addJacobian(y, prc[(u-1) div 2 + 1]);
-			//y := addJacobian(y, prc[(u+1) div 2]); 
 			i := s-1;
 		end if;
 	end while;
 	return y;
 end function;
-
 
 function question4(n,A)
 	return JacobianToAffine(SlidingWindow(A,n,5));
